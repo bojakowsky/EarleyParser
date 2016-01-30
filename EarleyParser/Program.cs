@@ -39,6 +39,12 @@ namespace EarleyParser
             {
                 return Values.Contains(text);
             }
+
+            public List<string> AddDotToTheEnd(List<string> keys)
+            {
+                keys.Add(DOT);
+                return keys;
+            }
         }
 
         public const string DOT = "@";
@@ -70,6 +76,8 @@ namespace EarleyParser
                     return true;
                 return false;
             }
+
+            
         }
 
         public class EarleyParser
@@ -77,18 +85,46 @@ namespace EarleyParser
             public void Predictor(State state)
             {
                 var termsLeft = state.GetTermAfterDot();
-                foreach (var term in Grammar.GetKeys(termsLeft))
+                foreach (var terms in Grammar.GetKeys(termsLeft))
                 {
                     Charts[state.j]
                         .AddToChart(new State()
                         {
                             termsLeft = termsLeft,
-                            termsRight = term,
+                            termsRight = terms,
                             i = state.j,
                             j = state.j
                         });
                 }
             }
+
+            public void Scanner(State state)
+            {
+                var termsLeft = state.GetTermAfterDot();
+                foreach (var terms in Grammar.GetKeys(termsLeft))
+                {
+                    if (state.j < Words.Count())
+                    {
+                        foreach (var term in terms)
+                        {
+                            string termLower = term.ToLower();
+                            string sentenceLower = Words[state.j].ToLower();
+                            if (termLower.Equals(sentenceLower))
+                            {
+                                State newState = new State()
+                                {
+                                    termsLeft = termsLeft,
+                                    termsRight = Grammar.AddDotToTheEnd(terms),
+                                    i = state.j,
+                                    j = state.j + 1
+                                };
+                                Charts[state.j + 1].AddToChart(newState);
+                            }
+                        }
+                    }
+                }
+            }
+
 
             public List<string> Words;
             public Grammar Grammar;
@@ -111,8 +147,7 @@ namespace EarleyParser
                         if (!string.IsNullOrEmpty(termAfterDot) && !state.IsTermPartOfSpeech(termAfterDot, Grammar))
                             Predictor(state);
                         else if (!string.IsNullOrEmpty(termAfterDot) && state.IsTermPartOfSpeech(termAfterDot, Grammar))
-                            throw new NotImplementedException();
-                        //scanner(state)
+                            Scanner(state);
                         else
                             throw new NotImplementedException();
                         //completer(state)
