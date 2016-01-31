@@ -20,19 +20,66 @@ namespace EarleyParser
         }
         public class Grammar
         {
-            public Dictionary<List<List<string>>, string> RulesKeyValues
-                = new Dictionary<List<List<string>>, string>();
+            public Dictionary<List<TermsRight>, string> RulesKeyValues
+                = new Dictionary<List<TermsRight>, string>();
 
             public List<string> Values = new List<string>();
 
-            public List<List<string>> GetKeys(string left)
+            public List<TermsRight> GetKeys(string left)
             {
-                List<List<string>> right = null;
+                List<TermsRight> right = null;
                 if (RulesKeyValues.ContainsValue(left))
-                    return (List<List<string>>)RulesKeyValues
+                    return (List<TermsRight>)RulesKeyValues
                         .Where(x => x.Value == left)
-                        .Select(y=>y.Key.FirstOrDefault());
+                        .SelectMany(y => y.Key).ToList();
                 return right;
+            }
+
+            public TermsRight ListBuilder(params string[] parameter)
+            {
+                TermsRight list = new TermsRight(parameter.ToList());
+                return list;
+            }
+
+            public List<TermsRight> ListOfListsBuilder(params TermsRight[] parameter)
+            {
+                List<TermsRight> listOfLists = new List<TermsRight>();
+                listOfLists.AddRange(parameter);
+                return listOfLists;
+            }
+
+            public void InitTest()
+            {
+                var s1 = ListBuilder("S", "+", "M");
+                var s2 = ListBuilder("M");
+                var sRKV1 = ListOfListsBuilder(s1, s2);
+                RulesKeyValues.Add(sRKV1, "S");
+                
+
+                var s3 = ListBuilder("M", "*", "T");
+                var s4 = ListBuilder("T");
+                var sRKV2 = ListOfListsBuilder(s3, s4);
+                RulesKeyValues.Add(sRKV2, "M");
+
+                var s5 = ListBuilder("Number");
+                var sRKV3 = ListOfListsBuilder(s5);
+                RulesKeyValues.Add(sRKV3, "T");
+
+                var s6 = ListBuilder("1", "2", "3", "4");
+                var sRKV4 = ListOfListsBuilder(s6);
+                RulesKeyValues.Add(sRKV4, "Number");
+
+                var s7 = ListBuilder("+");
+                var sRKV5 = ListOfListsBuilder(s7);
+                RulesKeyValues.Add(sRKV5, "+");
+
+                var s8 = ListBuilder("*");
+                var sRKV6 = ListOfListsBuilder(s8);
+                RulesKeyValues.Add(sRKV6, "*");
+
+                Values.Add("+");
+                Values.Add("*");
+                Values.Add("Number");
             }
 
             public bool IsPartOfGrammar(string text)
@@ -40,26 +87,36 @@ namespace EarleyParser
                 return Values.Contains(text);
             }
 
-            public List<string> AddDotToTheEnd(List<string> keys)
+            public TermsRight AddDotToTheEnd(TermsRight keys)
             {
-                keys.Add(DOT);
-                return keys;
+                keys.termsRight.Add(DOT);
+                return new TermsRight(keys.termsRight);
+            }
+
+            public TermsRight AddDotToTheBeginning(TermsRight keys)
+            {
+                keys.termsRight.Insert(0, DOT);
+                return new TermsRight(keys.termsRight);
             }
         }
 
         public const string DOT = "@";
-        public class State
-        {
-            int dotIndex = -1;
 
-            public string termsLeft;
+        public class TermsRight
+        {
+            public int dotIndex = -1;
             public List<string> termsRight;
-            public int i, j;
+
+            public TermsRight(List<string> terms)
+            {
+                termsRight = terms;
+                dotIndex = termsRight.IndexOf(DOT);
+            }
 
             public string GetTermAfterDot()
             {
                 if (dotIndex != -1 && dotIndex < termsRight.Count() - 1)
-                    return termsRight[dotIndex];
+                    return termsRight[dotIndex + 1];
                 return String.Empty;
             }
 
@@ -77,35 +134,56 @@ namespace EarleyParser
                 return false;
             }
 
-            
+            public TermsRight MoveDotRight()
+            {
+                int dotIndex = termsRight.FindIndex(x => x.Equals(DOT));
+                string bufor = termsRight[dotIndex + 1];
+                termsRight[dotIndex + 1] = DOT;
+                termsRight[dotIndex] = bufor;
+                return new TermsRight(termsRight);
+            }
+        }
+
+        public class State
+        {
+            public string termsLeft;
+            public TermsRight termsRight;
+            public int i, j;
         }
 
         public class EarleyParser
         {
             public void Predictor(State state)
             {
-                var termsLeft = state.GetTermAfterDot();
-                foreach (var terms in Grammar.GetKeys(termsLeft))
+                var termsLeft = state.termsRight.GetTermAfterDot();
+                var Keys = Grammar.GetKeys(termsLeft);
+
+                if (Keys != null)
                 {
-                    Charts[state.j]
-                        .AddToChart(new State()
+                    foreach (var terms in Keys)
+                    {
+                        var newState = new State()
                         {
                             termsLeft = termsLeft,
-                            termsRight = terms,
+                            termsRight = Grammar.AddDotToTheBeginning(terms),
                             i = state.j,
                             j = state.j
-                        });
+                        };
+
+                        Charts[state.j]
+                            .AddToChart(newState);
+                    }
                 }
             }
 
             public void Scanner(State state)
             {
-                var termsLeft = state.GetTermAfterDot();
+                var termsLeft = state.termsRight.GetTermAfterDot();
                 foreach (var terms in Grammar.GetKeys(termsLeft))
                 {
                     if (state.j < Words.Count())
                     {
-                        foreach (var term in terms)
+                        foreach (var term in terms.termsRight)
                         {
                             string termLower = term.ToLower();
                             string sentenceLower = Words[state.j].ToLower();
@@ -125,42 +203,95 @@ namespace EarleyParser
                 }
             }
 
+            public void Completer(State state)
+            {
+                string left = state.termsLeft;
+
+                for (int i = 0; i < Charts[state.i].chart.Count(); i++)
+                {
+                    State buforState = Charts[state.i].chart[i];
+                    string right = buforState.termsRight.GetTermAfterDot();
+
+                    if (right != string.Empty && left.Equals(right))
+                    {
+                        State newState = new State()
+                        {
+                            termsLeft = left,
+                            termsRight = buforState.termsRight.MoveDotRight(),
+                            i = buforState.i,
+                            j = state.j
+                        };
+
+
+                        Charts[state.j].AddToChart(newState);
+                    }
+                }
+
+            }
 
             public List<string> Words;
             public Grammar Grammar;
             public List<Chart> Charts;
 
-            public void Parse(List<string> words, Grammar grammar)
+            public bool Parse(List<string> words, Grammar grammar)
             {
                 Grammar = grammar;
                 this.Words = words;
                 Charts = new List<Chart>(Words.Count());
+                for (int i = 0; i < words.Count(); i++)
+                    Charts.Add(new Chart());
+
                 State dummyStartState = 
-                    new State() { termsLeft = "$", termsRight = new List<string>() { DOT, "S" }, i = 0, j = 0 };
+                    new State() {
+                        termsLeft = "$",
+                        termsRight = new TermsRight(new List<string>() { DOT, "S" }),
+                        i = 0, j = 0 };
+                
+
                 Charts[0].AddToChart(dummyStartState);
 
                 for (int i = 0; i < Words.Count(); ++i)
                 {
-                    foreach (var state in Charts[i].chart)
+                    for (int j = 0 ; j < Charts[i].chart.Count(); j++)
                     {
-                        var termAfterDot = state.GetTermAfterDot();
-                        if (!string.IsNullOrEmpty(termAfterDot) && !state.IsTermPartOfSpeech(termAfterDot, Grammar))
+                        var state = Charts[i].chart[j];
+                   
+                        var termAfterDot = state.termsRight.GetTermAfterDot();
+                        if (!string.IsNullOrEmpty(termAfterDot) && !state.termsRight.IsTermPartOfSpeech(termAfterDot, Grammar))
                             Predictor(state);
-                        else if (!string.IsNullOrEmpty(termAfterDot) && state.IsTermPartOfSpeech(termAfterDot, Grammar))
+                        else if (!string.IsNullOrEmpty(termAfterDot) && state.termsRight.IsTermPartOfSpeech(termAfterDot, Grammar))
                             Scanner(state);
                         else
-                            throw new NotImplementedException();
-                        //completer(state)
+                            Completer(state);
                     }
                 }
+
+                State endState =
+                    new State() {
+                        termsLeft = "$",
+                        termsRight = new TermsRight(new List<string>() { "S", DOT }),
+                        i = 0, j = 0 };
+
+                for (int j = 0; j < Charts[Words.Count()].chart.Count(); j++)
+                {
+                    State state = Charts[Words.Count()].chart[j];
+
+                    if (state.Equals(endState))
+                        return true;
+                }
+
+                return false;
             }
         }
 
         static void Main(string[] args)
         {
-            var input = new List<string> { "(", "(", ")", ")" };
+            List<string> sentence = new List<string>{ "2", "+", "3", "*", "4" };
+            Grammar grammar = new Grammar();
+            grammar.InitTest();
 
-
+            EarleyParser parser = new EarleyParser();
+            Console.WriteLine(parser.Parse(sentence, grammar) ? "Y" : "N");
         }
     }
 }
