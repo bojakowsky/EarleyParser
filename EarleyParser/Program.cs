@@ -402,11 +402,11 @@ namespace EarleyParser
             sentence = new List<string> { "John", "called", "Mary", "from", "Denver" };
             test.FirstTest(sentence, Test.TestsAvailable.JohnMaryTest);
 
-            //Test that should Pass
+            //Test that shouldn't Pass
             sentence = new List<string> { "John", "Denver", "Mary" };
             test.FirstTest(sentence, Test.TestsAvailable.JohnMaryTest);
 
-            //Test that should Pass
+            //Test that shouldn't Pass
             sentence = new List<string> { "John", "from", "Mary" };
             test.FirstTest(sentence, Test.TestsAvailable.JohnMaryTest);
             #endregion
