@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EarleyParser
 {
-    class Program
+    public class Program
     {
         public class Chart
         {
@@ -94,51 +94,26 @@ namespace EarleyParser
                 return right;
             }
 
-            public TermsRight ListBuilder(params string[] parameter)
+            public static TermsRight ListBuilder(params string[] parameter)
             {
                 TermsRight list = new TermsRight(parameter.ToList());
                 return list;
             }
 
-            public List<TermsRight> ListOfListsBuilder(params TermsRight[] parameter)
+            public static List<TermsRight> ListOfListsBuilder(params TermsRight[] parameter)
             {
                 List<TermsRight> listOfLists = new List<TermsRight>();
                 listOfLists.AddRange(parameter);
                 return listOfLists;
             }
 
-            public void InitTest()
+            public void InitTest(Dictionary<List<TermsRight>, string> rulesKeyValues, List<string> values)
             {
-                var s1 = ListBuilder("S", "+", "M");
-                var s2 = ListBuilder("M");
-                var sRKV1 = ListOfListsBuilder(s1, s2);
-                RulesKeyValues.Add(sRKV1, "S");
+                RulesKeyValues.Clear();
+                Values.Clear();
 
-
-                var s3 = ListBuilder("M", "*", "T");
-                var s4 = ListBuilder("T");
-                var sRKV2 = ListOfListsBuilder(s3, s4);
-                RulesKeyValues.Add(sRKV2, "M");
-
-                var s5 = ListBuilder("Number");
-                var sRKV3 = ListOfListsBuilder(s5);
-                RulesKeyValues.Add(sRKV3, "T");
-
-                var s6 = ListBuilder("1", "2", "3", "4");
-                var sRKV4 = ListOfListsBuilder(s6);
-                RulesKeyValues.Add(sRKV4, "Number");
-
-                var s7 = ListBuilder("+");
-                var sRKV5 = ListOfListsBuilder(s7);
-                RulesKeyValues.Add(sRKV5, "+");
-
-                var s8 = ListBuilder("*");
-                var sRKV6 = ListOfListsBuilder(s8);
-                RulesKeyValues.Add(sRKV6, "*");
-
-                Values.Add("+");
-                Values.Add("*");
-                Values.Add("Number");
+                RulesKeyValues = rulesKeyValues;
+                Values = values;
             }
 
             public bool IsPartOfGrammar(string text)
@@ -231,7 +206,7 @@ namespace EarleyParser
             {
                 for (int i = 0; i < Charts.Count; i++)
                 {
-                    Console.WriteLine("Chart[" + i.ToString() + "]");
+                    Console.WriteLine("Chart[" + i + "]");
                     foreach (var chart in Charts[i].chart)
                     {
                         string termsRight = "";
@@ -240,9 +215,10 @@ namespace EarleyParser
                             termsRight += " " + term;
                         }
 
-                        Console.WriteLine($"{ chart.termsLeft } { termsRight } { chart.i } { chart.j }");
+                        Console.WriteLine($"{ chart.termsLeft.PadRight(10, ' ') } \t  { termsRight.PadRight(20, ' ')} \t { chart.i } { chart.j }");
                     }
                 }
+                Console.WriteLine();
             }
 
             public void Predictor(State state)
@@ -384,19 +360,66 @@ namespace EarleyParser
             }
         }
 
+        public static string GetStringFromList(List<string>list)
+        {
+            string retString = "";
+            foreach (var item in list)
+                retString += " " + item;
+            return retString;
+        }
+
         static void Main(string[] args)
         {
+            Test test = new Test();
+            #region Numeric tests
+            //Test that should Pass
             List<string> sentence = new List<string> { "2", "+", "3", "*", "4" };
-            Grammar grammar = new Grammar();
-            grammar.InitTest();
+            test.FirstTest(sentence, Test.TestsAvailable.AddAndMultiplyNumbersTest);
+            
+            //Test that should Pass
+            sentence = new List<string> { "2", "*", "3", "*", "4", "+", "1", "+", "2", "*", "3"};
+            test.FirstTest(sentence, Test.TestsAvailable.AddAndMultiplyNumbersTest);
 
-            EarleyParser parser = new EarleyParser();
-            Console.WriteLine(parser.Parse(sentence, grammar) ? "Y" : "N");
+            //Test that shouldn't Pass
+            sentence = new List<string> { "2", "3", "*", "4" };
+            test.FirstTest(sentence, Test.TestsAvailable.AddAndMultiplyNumbersTest);
 
-            parser.PrintOutChart();
+            //Test that shouldn't Pass
+            sentence = new List<string> { "2", "+", "3", "*", "4","*", "2", "+", "3", "*", "4", "*", "+"};
+            test.FirstTest(sentence, Test.TestsAvailable.AddAndMultiplyNumbersTest);
 
+            //Test that shouldn't Pass
+            sentence = new List<string> { "2", "+", "3", "*", "4", "*", "2", "+", "3", "*", "4", "*", "+" };
+            test.FirstTest(sentence, Test.TestsAvailable.JohnMaryTest);
+            #endregion
+
+            #region Sentence tests
+            //Test that should Pass
+            sentence = new List<string> { "John", "called", "Mary" };
+            test.FirstTest(sentence, Test.TestsAvailable.JohnMaryTest);
+
+            //Test that should Pass
+            sentence = new List<string> { "John", "called", "Mary", "from", "Denver" };
+            test.FirstTest(sentence, Test.TestsAvailable.JohnMaryTest);
+
+            //Test that should Pass
+            sentence = new List<string> { "John", "Denver", "Mary" };
+            test.FirstTest(sentence, Test.TestsAvailable.JohnMaryTest);
+
+            //Test that should Pass
+            sentence = new List<string> { "John", "from", "Mary" };
+            test.FirstTest(sentence, Test.TestsAvailable.JohnMaryTest);
+            #endregion
+
+
+
+        }
+
+        public static void WaitForPress()
+        {
+            Console.WriteLine("Press any key to run next test.");
             Console.ReadKey();
-
+            Console.Clear();
         }
     }
 }
