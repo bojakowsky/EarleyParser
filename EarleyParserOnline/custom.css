@@ -1,0 +1,25 @@
+﻿.fieldset {
+    position: relative;
+    border: 1px solid #000;
+    margin: 20px;
+    padding: 20px;
+    text-align: left;
+    }
+
+    .fieldset .legend {
+    background: #fff;
+    height: 1px;
+    position: absolute;
+    top: -1px;
+    padding: 0 20px;
+    color: #000;
+    overflow: visible;
+    }
+
+    .fieldset .legend span {
+    top: -0.5em;
+    position: relative;
+    vertical-align: middle;
+    display: inline-block;
+    overflow: visible;
+    }

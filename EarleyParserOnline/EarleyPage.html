@@ -1,0 +1,122 @@
+﻿<!DOCTYPE html>
+<html ng-app="earleyModule">
+<head>
+    <link rel="stylesheet" type="text/css" href="custom.css">
+    <script src="Scripts/angular.js"></script>
+    <script src="Controller.js"></script>
+    <script src="Scripts/jquery-2.2.0.min.js"></script>
+    <script type="text/javascript">
+        function HideEarleyTable() {
+            $("#earleyTable").toggle();
+            var isVisible = $("#earleyTable").is(":visible");
+            if (isVisible)
+                $("#toggleButton").text("Hide Earley table");
+            else $("#toggleButton").text("Unhide Earley table");
+        }
+    </script>
+    <title></title>
+
+</head>
+<body ng-controller="earleyController">
+    <div class="fieldset">
+        <div style="width: 512px; display: table-cell;">
+            <div class="legend">
+                <span>EarleyParser</span>
+            </div>
+
+
+            <div class="fieldset">
+                <div class="legend">
+                    <span>Input</span>
+                </div>
+                <form>
+                    <input id="ruleLeftTermInput" type="text" ng-model="ruleLeftTerm" ng-model-instant style="width: 100px;" />
+                    <span> -> </span>
+                    <input type="text" ng-model="ruleRightTerm" ng-model-instant />
+                    <button ng-click="AddRule()">Add rule</button>
+                </form>
+
+                <table>
+                    <tbody>
+                        <tr ng-repeat="rule in rules">
+                            <td style="min-width: 100px">{{ rule.leftSide }} </td>
+                            <td style="min-width: 300px">-> {{ rule.rightSide }} </td>
+                            <td style=" word-break: keep-all; float:right;"><button ng-click="RemoveRule(rule)">Remove rule</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <hr />
+                <button ng-click="RemoveAll()" style="float: right;"> Remove all rules </button>
+                <br /> <br />
+                <label>Sentence to parse:</label>
+                <input id="currentSentenceToParse" type="text" ng-model="sentenceToParse" ng-model-instant />
+                <button ng-click="RunParseAndAddToHistory()">Start parse</button>
+                <br /><br />
+            </div>
+            <div class="fieldset">
+                <div class="legend">
+                    <span>History</span>
+                </div>
+                <ul style="min-width: 512px; ">
+                    <li style="min-height: 25px" ng-repeat="story in history">
+                        <span>{{story.name}} - </span>
+                        <span>sentence: " {{story.sentence}} " </span>
+                        <button style=" word-break: keep-all; float:right;" ng-click="LoadRulesFromHistory(story)">Load rules</button>
+                        <button style="margin-right: 5px; word-break: keep-all; float:right;" ng-click="RemoveFromHistory(story)">Remove rules</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div style="width: 712px; display: table-cell;">
+            <div class="fieldset">
+                <div class="legend">
+                    <span>Output</span>
+                </div>
+                <div>
+                    <button id="toggleButton" onclick="HideEarleyTable()">Hide Earley table</button> <br />
+                    <table id="earleyTable">
+                        <thead>
+                            <tr>
+                                <td style="width: 100px;">ChartIndex</td>
+                                <td style="width: 400px;">Rule</td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="chart in charts track by $index" ng-init="SetStateIndexes()">
+                                <td>{{ $index }}</td>
+                                <!--<td> <span ng-repeat="i in indexes"> {{ i }} </span> </td>-->
+
+
+                                <td ng-repeat="state in chart">
+                                    <div ng-repeat="s in state">
+                                        <table>
+                                            <tr>
+                                                <td style="width: 100px;">
+                                                    {{ $index }} &nbsp; | &nbsp; {{ s.termsLeft }}
+                                                    </
+                                                </td>
+
+                                                <td>
+                                                    ->
+                                                </td>
+                                                <td style="width: 200px;">
+                                                    <span ng-repeat="term in s.termsRight.termsRight">
+                                                        {{ term }}
+                                                    </span>
+                                                </td>
+
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <hr />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
